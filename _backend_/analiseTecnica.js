@@ -1,6 +1,7 @@
 // Importa as bibliotecas necessárias
 const axios = require('axios');
 const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
 const dotenv = require('dotenv');
 const log = require('./logger');
@@ -14,6 +15,10 @@ if (global.analiseTecnicaIniciado) {
     process.exit(0);
 }
 global.analiseTecnicaIniciado = true;
+
+// Caminho para a pasta compartilhada do N8N
+const SHARED_PATH = '/data/shared';
+const ANALISE_FILE = path.join(SHARED_PATH, 'analisarOrdem.json');
 
 log('analise', 'Sistema de análise técnica iniciado');
 
@@ -226,8 +231,19 @@ function gerarArquivoJSON(symbol, side) {
         type: 'MARKET'
     };
 
-    fs.writeFileSync('./analisarOrdem.json', JSON.stringify(json, null, 2));
-    log('analise', `Arquivo JSON gerado para ${symbol}: ${side} ${symbol}`);
+    try {
+        // Verifica se a pasta shared existe, se não, cria
+        if (!fs.existsSync(SHARED_PATH)) {
+            fs.mkdirSync(SHARED_PATH, { recursive: true });
+            log('analise', `Pasta ${SHARED_PATH} criada.`);
+        }
+
+        // Escreve o arquivo na pasta compartilhada do N8N
+        fs.writeFileSync(ANALISE_FILE, JSON.stringify(json, null, 2));
+        log('analise', `Arquivo JSON gerado para N8N: ${ANALISE_FILE} - ${side} ${symbol}`);
+    } catch (error) {
+        log('analise', `Erro ao gerar arquivo JSON: ${error.message}`);
+    }
 }
 
 // Função principal para iniciar a análise

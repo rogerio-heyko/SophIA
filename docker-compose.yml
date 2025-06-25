@@ -184,6 +184,7 @@ services:
     volumes:
       - ./_backend_:/app
       - backend_node_modules:/app/node_modules
+      - ./shared:/data/shared
     environment:
       - NODE_ENV=development
       - POSTGRES_HOST=postgres
