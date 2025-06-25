@@ -4,11 +4,11 @@
   "description": "SophIA Backend API",
   "main": "server.js",
   "scripts": {
-    "dev": "concurrently --names \"API,ANALISE,ORDEM,MONITOR\" --colors \"nodemon server.js\" \"nodemon --watch *.json analiseTecnica.js\" \"nodemon --watch ordem.json criarOrdem.js\" \"nodemon monitorarPosicoes.js\"",
+    "dev": "concurrently --names \"API,ANALISE,ORDEM,MONITOR\" --colors \"nodemon server.js\" \"nodemon analiseTecnica.js\" \"nodemon criarOrdem.js\" \"nodemon monitorarPosicoes.js\"",
     "start": "concurrently \"node server.js\" \"node analiseTecnica.js\" \"node criarOrdem.js\" \"node monitorarPosicoes.js\"",
     "server": "nodemon server.js",
     "analise": "nodemon analiseTecnica.js",
-    "ordem": "nodemon --watch ordem.json criarOrdem.js",
+    "ordem": "nodemon criarOrdem.js",
     "monitor": "nodemon monitorarPosicoes.js",
     "test": "echo 'No tests specified'"
   },
