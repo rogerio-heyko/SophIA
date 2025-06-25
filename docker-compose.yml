@@ -3,6 +3,8 @@ volumes:
   postgres_storage:
   ollama_storage:
   qdrant_storage:
+  frontend_node_modules:
+  backend_node_modules:
 
 networks:
   demo:
@@ -52,6 +54,8 @@ services:
     hostname: postgres
     networks: ['demo']
     restart: unless-stopped
+    ports:
+      - 5432:5432
     environment:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
@@ -147,3 +151,51 @@ services:
     image: ollama/ollama:rocm
     depends_on:
      - ollama-gpu-amd
+
+  frontend:
+    image: node:20-alpine
+    hostname: frontend
+    container_name: frontend
+    networks: ['demo']
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    working_dir: /app
+    volumes:
+      - ./__frontend__:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - BACKEND_URL=http://backend:4000
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - backend
+
+  backend:
+    image: node:20-alpine
+    hostname: backend
+    container_name: backend
+    networks: ['demo']
+    restart: unless-stopped
+    ports:
+      - 4000:4000
+    working_dir: /app
+    volumes:
+      - ./_backend_:/app
+      - backend_node_modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - QDRANT_HOST=qdrant
+      - OLLAMA_HOST=ollama:11434
+      - FRONTEND_URL=http://frontend:3000
+    env_file:
+      - .env
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      postgres:
+        condition: service_healthy

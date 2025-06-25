@@ -1,0 +1,141 @@
+# Dependências Node.js
+node_modules/
+__frontend__/node_modules/
+_backend_/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Arquivos de ambiente (SENSÍVEL - NÃO COMMITTAR)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.backup
+
+# Arquivos de trading (podem conter dados sensíveis)
+_backend_/ordem.json
+_backend_/analisarOrdem.json
+_backend_/*.log
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Arquivos de runtime
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Cobertura de testes
+coverage/
+*.lcov
+.nyc_output
+
+# Arquivos de dependências
+.pnp
+.pnp.js
+
+# Arquivos do ESLint
+.eslintcache
+
+# Arquivos opcionais do npm
+.npm
+
+# Arquivos do Yarn
+.yarn-integrity
+
+# Arquivos de ambiente dotenv
+.env.test
+
+# Arquivos de cache do Parcel
+.cache
+.parcel-cache
+
+# Arquivos de build/saída
+dist/
+build/
+
+# Arquivos do Rush
+common/deploy/
+common/temp/
+
+# Arquivos de IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Arquivos do sistema operacional
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Arquivos de backup
+*.bak
+*.backup
+
+# Docker
+.dockerignore
+
+# Dados do PostgreSQL
+postgres_data/
+
+# Dados do Qdrant
+qdrant_data/
+
+# Dados do Ollama
+ollama_data/
+
+# Dados do N8N
+n8n_data/
+
+# Arquivos de configuração local
+config.local.js
+config.local.json
+
+# Arquivos de credenciais (CRÍTICO)
+credentials/
+secrets/
+keys/
+*.pem
+*.key
+*.crt
+*.p12
+
+# Arquivos de trading específicos
+trading_logs/
+positions/
+orders/
+strategies/
+
+# Arquivos de cache
+.cache/
+.tmp/
+
+# Arquivos de sessão
+sessions/
+
+# Arquivos de upload
+uploads/
+
+# Arquivos de status temporários
+__frontend__/status.html
+_backend_/status.json
