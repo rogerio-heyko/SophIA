@@ -1,7 +1,6 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const fs = require('fs');
-const path = require('path');
 const dotenv = require('dotenv');
 const log = require('./logger');
 
@@ -13,18 +12,6 @@ const baseUrl = 'https://fapi.binance.com'; // URL base da API de Futuros da Bin
 
 // Alavancagem
 const alavancagem = 50;
-
-// Caminho do arquivo de ordem
-const ORDEM_FILE = path.join(__dirname, 'ordem.json');
-
-// Verifica se o processo já está rodando
-if (global.criarOrdemIniciado) {
-    console.log('criarOrdem.js já está em execução. Ignorando nova instância.');
-    process.exit(0);
-}
-global.criarOrdemIniciado = true;
-
-log('ordem', 'Sistema de criação de ordens iniciado - Monitorando arquivo ordem.json');
 
 // Função para obter as credenciais de uma conta
 function obterCredenciaisConta(conta) {
@@ -195,147 +182,73 @@ async function createOrder(orderDetails, apiKey, apiSecret) {
     }
 }
 
-// Função para monitorar o arquivo JSON e criar a ordem (versão legacy - será removida)
-// Esta função foi substituída pela função monitorarArquivoOrdem() mais robusta
+// Função para monitorar o arquivo JSON e criar a ordem
+async function monitorarArquivoJSON() {
+    fs.watchFile('C:/sophiaTest/ordem.json', async (curr, prev) => {
+        if (curr.mtime !== prev.mtime) {
+            log('ordem', 'Arquivo JSON alterado. Lendo...');
 
-// Função para obter todas as contas configuradas no .env
-function obterContas() {
-    const contas = [];
-    const envKeys = Object.keys(process.env);
-    
-    // Procura por padrões de API_KEY no .env
-    envKeys.forEach(key => {
-        if (key.endsWith('_APIKEY')) {
-            const conta = key.replace('_APIKEY', '');
-            contas.push(conta);
-        }
-    });
-    
-    return contas;
-}
-
-// Função para processar uma nova ordem
-async function processarOrdem(orderDetails) {
-    try {
-        log('ordem', `Processando nova ordem: ${orderDetails.side} ${orderDetails.symbol}`);
-        
-        // Obtém todas as contas configuradas
-        const contas = obterContas();
-        if (contas.length === 0) {
-            log('ordem', 'Nenhuma conta encontrada no arquivo .env.');
-            return;
-        }
-
-        // Itera sobre todas as contas definidas no arquivo .env
-        for (const conta of contas) {
-            const credenciais = obterCredenciaisConta(conta);
-            if (!credenciais) continue;
-
-            // Verifica se há posições abertas no par de moedas
-            const posicaoAberta = await verificarPosicoesAbertas(orderDetails.symbol, credenciais.apiKey, credenciais.apiSecret);
-            if (posicaoAberta) {
-                log('ordem', `Já existe uma posição aberta para ${orderDetails.symbol} na conta ${conta}. Ordem ignorada.`);
-                continue;
-            }
-
-            // Obtém o saldo em USDT da conta
-            const saldoUSDT = await obterSaldoUSDT(credenciais.apiKey, credenciais.apiSecret);
-            if (saldoUSDT <= 0) {
-                log('ordem', `Saldo insuficiente na conta ${conta}. Ordem ignorada.`);
-                continue;
-            }
-
-            // Calcula a quantidade base (1% do saldo em USDT)
-            const quantidadeBase = saldoUSDT * 0.01;
-
-            // Obtém o preço atual do par de moedas
-            const precoAtual = await obterPrecoAtual(orderDetails.symbol);
-            if (!precoAtual) continue;
-
-            // Calcula a quantidade do base asset com alavancagem
-            const valorTotal = quantidadeBase * alavancagem; // Valor total com alavancagem
-            const quantidadeBaseAsset = valorTotal / precoAtual;
-
-            // Obtém as regras de precisão do símbolo
-            const precisaoSymbol = await obterPrecisaoSymbol(orderDetails.symbol, credenciais.apiKey, credenciais.apiSecret);
-            if (!precisaoSymbol) continue;
-
-            // Ajusta a quantidade para a precisão correta
-            const quantidadeAjustada = ajustarQuantidade(quantidadeBaseAsset, precisaoSymbol.stepSize);
-
-            log('ordem', `Criando ordem para a conta ${conta}: ${orderDetails.side} ${quantidadeAjustada} ${orderDetails.symbol}`);
-            
-            const resultado = await createOrder({
-                ...orderDetails,
-                quantity: quantidadeAjustada
-            }, credenciais.apiKey, credenciais.apiSecret);
-
-            if (resultado) {
-                log('ordem', `Ordem criada com sucesso na conta ${conta}: ${resultado.orderId}`);
-            }
-        }
-    } catch (error) {
-        log('ordem', `Erro ao processar ordem: ${error.message}`);
-    }
-}
-
-// Função para monitorar alterações no arquivo ordem.json
-function monitorarArquivoOrdem() {
-    let ultimaModificacao = null;
-
-    // Verifica se o arquivo existe
-    if (!fs.existsSync(ORDEM_FILE)) {
-        log('ordem', `Arquivo ${ORDEM_FILE} não encontrado. Criando arquivo vazio...`);
-        fs.writeFileSync(ORDEM_FILE, JSON.stringify({}, null, 2));
-    }
-
-    // Monitora alterações no arquivo
-    fs.watchFile(ORDEM_FILE, { interval: 1000 }, async (curr, prev) => {
-        // Verifica se houve uma modificação real
-        if (curr.mtime.getTime() !== ultimaModificacao) {
-            ultimaModificacao = curr.mtime.getTime();
-            
             try {
-                // Lê o conteúdo do arquivo
-                const conteudo = fs.readFileSync(ORDEM_FILE, 'utf8');
-                if (!conteudo.trim()) return; // Ignora arquivo vazio
+                const data = fs.readFileSync('C:/sophiaTest/ordem.json', 'utf8');
+                const orderDetails = JSON.parse(data);
 
-                const orderDetails = JSON.parse(conteudo);
-                
-                // Verifica se contém os campos obrigatórios
-                if (orderDetails.symbol && orderDetails.side && orderDetails.type) {
-                    log('ordem', `Detectada alteração no arquivo ordem.json - Processando ordem...`);
-                    await processarOrdem(orderDetails);
-                    
-                    // Limpa o arquivo após processar
-                    fs.writeFileSync(ORDEM_FILE, JSON.stringify({}, null, 2));
-                    log('ordem', 'Arquivo ordem.json limpo após processamento.');
-                } else {
-                    log('ordem', 'Arquivo ordem.json não contém campos obrigatórios (symbol, side, type).');
+                // Extrai as contas do arquivo .env
+                const contas = Object.keys(process.env)
+                    .filter(key => key.endsWith('_APIKEY'))
+                    .map(key => key.replace('_APIKEY', ''));
+
+                // Itera sobre todas as contas definidas no arquivo .env
+                for (const conta of contas) {
+                    const credenciais = obterCredenciaisConta(conta);
+                    if (!credenciais) continue;
+
+                    // Verifica se há posições abertas no par de moedas
+                    const posicaoAberta = await verificarPosicoesAbertas(orderDetails.symbol, credenciais.apiKey, credenciais.apiSecret);
+                    if (posicaoAberta) {
+                        log('ordem', `Já existe uma posição aberta para ${orderDetails.symbol} na conta ${conta}. Ordem ignorada.`);
+                        continue;
+                    }
+
+                    // Obtém o saldo em USDT da conta
+                    const saldoUSDT = await obterSaldoUSDT(credenciais.apiKey, credenciais.apiSecret);
+                    if (saldoUSDT <= 0) {
+                        log('ordem', `Saldo insuficiente na conta ${conta}. Ordem ignorada.`);
+                        continue;
+                    }
+
+                    // Calcula a quantidade base (1% do saldo em USDT)
+                    const quantidadeBase = saldoUSDT * 0.01;
+
+                    // Obtém o preço atual do par de moedas
+                    const precoAtual = await obterPrecoAtual(orderDetails.symbol);
+                    if (!precoAtual) continue;
+
+                    // Calcula a quantidade do base asset com alavancagem
+                    const valorTotal = quantidadeBase * alavancagem; // Valor total com alavancagem
+                    const quantidadeBaseAsset = valorTotal / precoAtual;
+
+                    // Obtém as regras de precisão do símbolo
+                    const precisaoSymbol = await obterPrecisaoSymbol(orderDetails.symbol, credenciais.apiKey, credenciais.apiSecret);
+                    if (!precisaoSymbol) continue;
+
+                    // Ajusta a quantidade para a precisão correta
+                    const quantidadeAjustada = ajustarQuantidade(quantidadeBaseAsset, precisaoSymbol.stepSize);
+
+                    log('ordem', `Criando ordem para a conta ${conta}:`, {
+                        ...orderDetails,
+                        quantity: quantidadeAjustada
+                    });
+                    await createOrder({
+                        ...orderDetails,
+                        quantity: quantidadeAjustada
+                    }, credenciais.apiKey, credenciais.apiSecret);
                 }
             } catch (error) {
-                log('ordem', `Erro ao processar arquivo ordem.json: ${error.message}`);
+                console.error('Erro ao ler ou processar o arquivo JSON:', error.message);
             }
         }
     });
-
-    log('ordem', `Monitoramento do arquivo ${ORDEM_FILE} iniciado.`);
 }
 
-// Inicia o monitoramento
-monitorarArquivoOrdem();
-
-// Mantém o processo ativo
-process.on('SIGINT', () => {
-    log('ordem', 'Sistema de criação de ordens sendo encerrado...');
-    fs.unwatchFile(ORDEM_FILE);
-    process.exit(0);
-});
-
-// Log para indicar que o serviço está rodando
-setInterval(() => {
-    // Log silencioso a cada 30 minutos para indicar que está ativo
-    log('ordem', 'Sistema de criação de ordens ativo - Aguardando alterações no ordem.json');
-}, 30 * 60 * 1000);
-
-log('ordem', 'Sistema de criação de ordens totalmente inicializado.');
+// Inicia o monitoramento do arquivo JSON
+monitorarArquivoJSON();

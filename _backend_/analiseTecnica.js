@@ -1,26 +1,12 @@
 // Importa as bibliotecas necessárias
 const axios = require('axios');
 const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
 const dotenv = require('dotenv');
 const log = require('./logger');
 
 // Carrega as variáveis de ambiente do arquivo .env
 dotenv.config();
-
-// Verifica se o processo já está rodando
-if (global.analiseTecnicaIniciado) {
-    console.log('analiseTecnica.js já está em execução. Ignorando nova instância.');
-    process.exit(0);
-}
-global.analiseTecnicaIniciado = true;
-
-// Caminho para a pasta compartilhada do N8N
-const SHARED_PATH = '/data/shared';
-const ANALISE_FILE = path.join(SHARED_PATH, 'analisarOrdem.json');
-
-log('analise', 'Sistema de análise técnica iniciado');
 
 // Configurações da API da Binance Futures
 const apiKey = process.env.TRADER01_APIKEY; // API Key da conta Trader01
@@ -231,19 +217,8 @@ function gerarArquivoJSON(symbol, side) {
         type: 'MARKET'
     };
 
-    try {
-        // Verifica se a pasta shared existe, se não, cria
-        if (!fs.existsSync(SHARED_PATH)) {
-            fs.mkdirSync(SHARED_PATH, { recursive: true });
-            log('analise', `Pasta ${SHARED_PATH} criada.`);
-        }
-
-        // Escreve o arquivo na pasta compartilhada do N8N
-        fs.writeFileSync(ANALISE_FILE, JSON.stringify(json, null, 2));
-        log('analise', `Arquivo JSON gerado para N8N: ${ANALISE_FILE} - ${side} ${symbol}`);
-    } catch (error) {
-        log('analise', `Erro ao gerar arquivo JSON: ${error.message}`);
-    }
+    fs.writeFileSync('./analisarOrdem.json', JSON.stringify(json, null, 2));
+    log('analise', `Arquivo JSON gerado para ${symbol}: ${side} ${symbol}`);
 }
 
 // Função principal para iniciar a análise
@@ -274,17 +249,5 @@ async function iniciarAnalise() {
     }
 }
 
-// Tratamento de encerramento
-process.on('SIGINT', () => {
-    log('analise', 'Sistema de análise técnica sendo encerrado...');
-    process.exit(0);
-});
-
-// Log de heartbeat a cada 5 minutos
-setInterval(() => {
-    log('analise', 'Sistema de análise técnica ativo - Analisando mercado...');
-}, 5 * 60 * 1000);
-
 // Inicia a análise
-log('analise', 'Iniciando análise técnica dos pares de moedas...');
 iniciarAnalise();
